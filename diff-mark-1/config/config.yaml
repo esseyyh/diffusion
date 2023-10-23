@@ -1,0 +1,35 @@
+hparams:
+  initial_image_size: 576
+  n_heads: 16
+  size: [288,144,72]
+  dims: [3,4,16,64]
+  patch_size: 12
+params:
+  no_epoch: 1
+  batch_size: 4
+  print_fre: 1
+  LR: 0.001
+
+
+data:
+  root_dir: '~/Documents/Ml/datastore/ViT'
+  csv_dir:   '~/Documents/Ml/eval/depth_task/depth-mark-2/config/joined-data.csv'
+  batch_size: 1
+  shuffle: True
+
+
+
+hydra: 
+ output_subdir: null  
+ run:  
+  dir: .
+
+
+
+
+
+
+
+
+
+
