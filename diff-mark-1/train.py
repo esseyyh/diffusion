@@ -1,54 +1,80 @@
 import torch
 import numpy as np
 import hydra
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader,Dataset,Subset
 
-from src.ViT import depth_model
+from src.network.unet import UNet
 from utils.data import ImageDataset
 
 
 
 @hydra.main(version_base=None,config_path="config",config_name="config")
 def train (cfg):
-    dataset=ImageDataset("/home/kunet.ae/100053688/datastore/ViT/","/home/kunet.ae/100053688/hpc_tasks/depth-mark-2/config/joined-data.csv")
+    dataset=ImageDataset(cfg.data.root_dir,cfg.data.csv_dir)
     
-    NO_EPOCHS = cfg.params.no_epoch
-    PRINT_FREQUENCY = cfg.params.print_fre
-    LR = cfg.params.LR
+    
+    train_indices = torch.arange(len(dataset))[:int(cfg.data.train_split * len(dataset))]
+    test_indices = torch.arange(len(dataset))[int(cfg.data.train_split * len(dataset)):]
 
-    model = depth_model(cfg.hparams).to("cuda")
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-    data_loader = DataLoader(dataset,cfg.params.batch_size)
-   
 
-    for epoch in range(NO_EPOCHS):
+    train_subset = Subset(dataset, train_indices)
+    test_subset = Subset(dataset, test_indices)
+
+# Create data loaders for the training and test subsets
+    train_loader = DataLoader(train_subset,shuffle= cfg.data.train_shuffle, batch_size=cfg.data.batch_size)#,num_workers=4)
+    test_loader = DataLoader(test_subset, shuffle=cfg.data.test_shuffle, batch_size=cfg.data.batch_size)#,num_workers=4)
+
+    model = UNet.to("cuda:0")
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.params.LR_1)
+    for epoch in range(cfg.params.no_epoch):
         mean_epoch_loss=[]
-        for batch in data_loader:
+        for batch in train_loader:
 
 
 
             
     
-            batch_image , batch_depth = batch
-            batch_depth=batch_depth.to("cuda")
-            batch_image=batch_image.to("cuda")
-  
-
-            predicted_depth = model(batch_image)
-    
+            data = batch[:][1]
+            data=data.to("cuda:0") 
+            images = model(data,train,False)
+            outs = batch[:][2]
+            outs=outs.to("cuda:0")
             optimizer.zero_grad()
-            loss = torch.nn.functional.mse_loss(batch_depth, predicted_depth) 
+            loss = torch.nn.functional.mse_loss(images,outs) 
             mean_epoch_loss.append(loss.item())
             loss.backward()
             optimizer.step()
     
-        if epoch % PRINT_FREQUENCY == 0:
+        if epoch % cfg.params.save_fre == 0:
             print('---')
             print(f"Epoch: {epoch} | Train Loss {np.mean(mean_epoch_loss)}")
-            torch.save(model,"out/model.pt")
+            torch.save(model,"model.pt")
+
+    print("#######")
+    print("#################")
+    print("#######")
+    #for epoch in range(cfg.params.no_epoch):
+    #    mean_epoch_loss=[]
+    #    for batch in test_loader:
 
 
 
+            
+    
+     #       batch_image  = batch
+     #       batch_image=batch_image.to("cuda:0")
+  
+
+     #       images = model(batch_image,train,False)
+    
+     #       optimizer.zero_grad()
+     #       loss = torch.nn.functional.mse_loss(batch_image,images) 
+     #       mean_epoch_loss.append(loss.item())
+  
+     #   if epoch % cfg.params.no_epoch ==0:
+     #           print('---')
+     #           print (f"Epoch :{epoch}|testloss {np.mean(mean_epoch_loss)} ")
+    
 
 
 if __name__=="__main__":
