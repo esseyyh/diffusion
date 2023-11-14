@@ -24,7 +24,7 @@ def train (cfg):
     train_loader = DataLoader(train_subset,shuffle= cfg.data.train_shuffle, batch_size=cfg.data.batch_size)#,num_workers=4)
     test_loader = DataLoader(test_subset, shuffle=cfg.data.test_shuffle, batch_size=cfg.data.batch_size)#,num_workers=4)
 
-    model = UNet.to("cuda:0")
+    model = UNet().to("cuda:0")
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.params.LR_1)
     for epoch in range(cfg.params.no_epoch):
         mean_epoch_loss=[]
@@ -33,47 +33,26 @@ def train (cfg):
 
 
             
-    
             data = batch[:][1]
-            data=data.to("cuda:0") 
-            images = model(data,train,False)
+            data=data.to('cuda:0') 
+            images = model(data,batch[:][3].to('cuda:0'))
             outs = batch[:][2]
-            outs=outs.to("cuda:0")
+            outs=outs.to('cuda:0')
             optimizer.zero_grad()
             loss = torch.nn.functional.mse_loss(images,outs) 
             mean_epoch_loss.append(loss.item())
             loss.backward()
             optimizer.step()
-    
+            print(f"loss :{loss}")
         if epoch % cfg.params.save_fre == 0:
             print('---')
             print(f"Epoch: {epoch} | Train Loss {np.mean(mean_epoch_loss)}")
             torch.save(model,"model.pt")
 
-    print("#######")
     print("#################")
-    print("#######")
-    #for epoch in range(cfg.params.no_epoch):
-    #    mean_epoch_loss=[]
-    #    for batch in test_loader:
+    print("-----------------")
+    print("finished training")
 
-
-
-            
-    
-     #       batch_image  = batch
-     #       batch_image=batch_image.to("cuda:0")
-  
-
-     #       images = model(batch_image,train,False)
-    
-     #       optimizer.zero_grad()
-     #       loss = torch.nn.functional.mse_loss(batch_image,images) 
-     #       mean_epoch_loss.append(loss.item())
-  
-     #   if epoch % cfg.params.no_epoch ==0:
-     #           print('---')
-     #           print (f"Epoch :{epoch}|testloss {np.mean(mean_epoch_loss)} ")
     
 
 

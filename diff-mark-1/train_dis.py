@@ -40,6 +40,10 @@ class Trainer:
         loss = F.mse_loss(output,data[:][2])
         loss.backward()
         self.optimizer.step()
+        print(f"Loss: {loss}")
+        print(data1.shape)
+        print(output.shape)
+        print(data[:][2].shape)
 
 
     def _run_epoch(self, epoch):

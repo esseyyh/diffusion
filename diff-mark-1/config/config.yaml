@@ -12,11 +12,14 @@ params:
 
 
 data:
-  root_dir: '~/Documents/Ml/datastore/ViT'
-  csv_dir:   '~/Documents/Ml/eval/depth_task/depth-mark-2/config/joined-data.csv'
+  root_dir: "/home/kunet.ae/100053688/datastore/ViT"
+  csv_dir: "/home/kunet.ae/100053688/datastore/csv-files/joined-data.csv"
+  out_dir: "/home/kunet.ae/100053688/out/hpc_tasks_ae/trail_1/"
   batch_size: 1
-  shuffle: True
-
+  train_shuffle: True
+  test_shuffle: False
+  train_split:  0.7
+  test_split:  0.3
 
 
 hydra: 
