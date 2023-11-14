@@ -9,7 +9,7 @@ from torch.distributed import init_process_group, destroy_process_group
 import os
 import hydra
 from utils.data import ImageDataset
-from  src.auto import AE 
+from  src.network.unet import UNet 
 
 def ddp_setup(rank, world_size):
     """
@@ -35,7 +35,8 @@ class Trainer:
         self.optimizer.zero_grad()
 
         data1 = data[:][1].to(self.gpu_id)
-        output = self.model(data1)
+        time =  data[:][3].to(self.gpu_id)
+        output = self.model(data1,time)
         loss = F.mse_loss(output,data[:][2])
         loss.backward()
         self.optimizer.step()
@@ -63,7 +64,7 @@ class Trainer:
 
 
 def load_train_objs(cfg):
-    model = AE(cfg.model_params)
+    model = UNet()
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.params.LR_1)
     return  model, optimizer
 
