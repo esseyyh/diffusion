@@ -32,7 +32,7 @@ def train (cfg):
 
 
 
-            
+            print("print")            
             data = batch[:][1]
             data=data.to('cuda:0') 
             images = model(data,batch[:][3].to('cuda:0'))
