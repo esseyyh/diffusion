@@ -1,0 +1,38 @@
+hparams:
+  initial_image_size: 576
+  n_heads: 16
+  size: [288,144,72]
+  dims: [3,4,16,64]
+  patch_size: 12
+params:
+  no_epoch: 1
+  batch_size: 4
+  print_fre: 1
+  LR: 0.001
+
+
+data:
+  root_dir: "/home/kunet.ae/100053688/datastore/ViT"
+  csv_dir: "/home/kunet.ae/100053688/datastore/csv-files/joined-data.csv"
+  out_dir: "/home/kunet.ae/100053688/out/hpc_tasks_ae/trail_1/"
+  batch_size: 1
+  train_shuffle: True
+  test_shuffle: False
+  train_split:  0.7
+  test_split:  0.3
+
+
+hydra: 
+ output_subdir: null  
+ run:  
+  dir: .
+
+
+
+
+
+
+
+
+
+
