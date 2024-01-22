@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from torchinfo import summary 
 
-from builder import res_block , Attentionblock,Sequential,Upsample
+from .builder import res_block , Attentionblock,Sequential,Upsample
 
 
 class UNET(nn.Module):
