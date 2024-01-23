@@ -232,3 +232,24 @@ class Upsample(nn.Module):
         
         x = F.interpolate(x, scale_factor=2, mode='nearest')                                                    # (Batch_Size, Features, Height, Width) -> (Batch_Size, Features, Height * 2, Width * 2)
         return self.conv(x)
+
+
+
+
+class TimeEmbedding(nn.Module):
+    def __init__(self, n_embd):
+        super().__init__()
+        self.linear_1 = nn.Linear(n_embd, 4 * n_embd)
+        self.linear_2 = nn.Linear(4 * n_embd, 4 * n_embd)
+
+    def forward(self, x):                     
+       
+        x = self.linear_1(x)                                                          # simple time embedding taking the (1,320) time encoding and changing it to a learnable parameter before being fed to the unet
+        
+        
+        x = F.silu(x) 
+        
+        
+        x = self.linear_2(x)
+
+        return x

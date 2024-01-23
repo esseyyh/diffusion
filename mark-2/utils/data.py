@@ -76,6 +76,7 @@ class ImageDataset(Dataset):
 
         # random time step generation 
         t = torch.randint(0, self.time_steps,(1,))
+        t=self.diff.time_embedding(int(t))
         
 
         # turn image to tensor

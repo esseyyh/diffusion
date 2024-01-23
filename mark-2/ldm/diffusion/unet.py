@@ -3,7 +3,8 @@ from torch import nn
 from torch.nn import functional as F
 from torchinfo import summary 
 
-from .builder import res_block , Attentionblock,Sequential,Upsample
+from .builder import res_block , Attentionblock,Sequential,Upsample,TimeEmbedding
+
 
 
 class UNET(nn.Module):
@@ -113,17 +114,47 @@ class UNET(nn.Module):
         return x
     
 
+    
+class UNET_OutputLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
 
+        
+        self.groupnorm = nn.GroupNorm(32, in_channels)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+    
+    def forward(self, x):
+        
+        x = self.groupnorm(x)                                                                                # a simple conv layer for changing the dimension of the latent from diffusion , x: group norm -> activation -> conv 
 
-x=torch.randn(1,4,64,64)
+        
+        
+        x = F.silu(x)
+        
+       
+        x = self.conv(x)
+        
+        
+        return x
 
-time=torch.randn(1,1280)
-
-context=torch.randn(1, 77, 768)
-
-blok=UNET()
-
-summary(blok,input_data=[x,context,time])
-
-print(blok(x,context,time).shape)
+class Diffusion(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.time_embedding = TimeEmbedding(320)
+        self.unet = UNET()
+        self.final = UNET_OutputLayer(320, 4)
+    
+    def forward(self, latent, context, time):
+        
+        time = self.time_embedding(time)                                                                        # diffusion a wrapper around the unet to embeed the time using sin and cos and suppling the output to the unet 
+        
+        
+        output = self.unet(latent, context, time)
+        
+        
+        output = self.final(output)
+        
+        
+        return output
+    
 

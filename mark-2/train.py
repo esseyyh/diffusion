@@ -1,119 +1,70 @@
 import torch
-import numpy as np
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader,Subset
+import torch.multiprocessing as mp
+from torch.utils.data.distributed import DistributedSampler
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.distributed import init_process_group, destroy_process_group
+
+
+import os
 import hydra
-from torch.utils.data import DataLoader,Dataset,Subset
+from utils.data import ImageDataset,Sampling
+from ldm.diffusion.unet import UNET
+from scripts.trainer import Trainer
 
-from src.network.unet import UNet
-from utils.data import ImageDataset
+def ddp_setup(rank, world_size):
+    """
+    Args:
+        rank: Unique identifier of each process
+        world_size: Total number of processes
+    """
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
+    init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
 
 
 
-@hydra.main(version_base=None,config_path="config",config_name="config")
-def train (cfg):
+def load_train_objs(cfg):
+    model = AE()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
+    return  model, optimizer
+
+
+def prepare_dataloader(cfg):
+
+    #
     dataset=ImageDataset(cfg.data.root_dir,cfg.data.csv_dir)
-    
-    
     train_indices = torch.arange(len(dataset))[:int(cfg.data.train_split * len(dataset))]
     test_indices = torch.arange(len(dataset))[int(cfg.data.train_split * len(dataset)):]
-
-
     train_subset = Subset(dataset, train_indices)
     test_subset = Subset(dataset, test_indices)
+    train_loader = DataLoader(train_subset,pin_memory=True,shuffle=False, batch_size=1,sampler=DistributedSampler(train_subset))
+    test_loader = DataLoader(test_subset, pin_memory=True, shuffle=False,batch_size=1,sampler=DistributedSampler(test_subset))
 
-# Create data loaders for the training and test subsets
-    train_loader = DataLoader(train_subset,shuffle= cfg.data.train_shuffle, batch_size=cfg.data.batch_size)#,num_workers=4)
-    test_loader = DataLoader(test_subset, shuffle=cfg.data.test_shuffle, batch_size=cfg.data.batch_size)#,num_workers=4)
-
-    model = UNet().to("cuda:0")
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.params.LR_1)
-    for epoch in range(cfg.params.no_epoch):
-        mean_epoch_loss=[]
-        for batch in train_loader:
+    return train_loader,test_loader
 
 
 
-            print("print")            
-            data = batch[:][1]
-            data=data.to('cuda:0') 
-            images = model(data,batch[:][3].to('cuda:0'))
-            outs = batch[:][2]
-            outs=outs.to('cuda:0')
-            optimizer.zero_grad()
-            loss = torch.nn.functional.mse_loss(images,outs) 
-            mean_epoch_loss.append(loss.item())
-            loss.backward()
-            optimizer.step()
-            print(f"loss :{loss}")
-        if epoch % cfg.params.save_fre == 0:
-            print('---')
-            print(f"Epoch: {epoch} | Train Loss {np.mean(mean_epoch_loss)}")
-            torch.save(model,"model.pt")
+def main(rank: int, world_size: int,cfg):
+    ddp_setup(rank, world_size)
+    model, optimizer = load_train_objs(cfg)
+    train_data,test_data = prepare_dataloader(cfg)
+    trainer = Trainer(model, train_data,test_data, optimizer, rank, cfg.params.save_fre,cfg)
+    trainer.train(1)
+    destroy_process_group()
 
-    print("#################")
-    print("-----------------")
-    print("finished training")
+
+
+if __name__ == "__main__":   
 
     
-
-
-if __name__=="__main__":
-    train()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#image2=Image.open("image2.jpg")
-#image1=Image.open("image1.jpg")
-
-
-#transform = transforms.Compose([
-    #transforms.ToTensor(), # Convert to torch tensor (scales data into [0,1])
-    #transforms.Lambda(lambda t: (t * 2) - 1), # Scale data between [-1, 1] 
-#])
-
-
-#reverse_transform = transforms.Compose([
-    #transforms.Lambda(lambda t: (t + 1) / 2), # Scale data between [0,1]
-    #transforms.Lambda(lambda t: t.permute(1, 2, 0)), # CHW to HWC
-   # transforms.Lambda(lambda t: t * 255.), # Scale data between [0.,255.]
-  #  transforms.Lambda(lambda t: t.cpu().numpy().astype(np.uint8)), # Convert into an uint8 numpy array
- #   transforms.ToPILImage(), # Convert to PIL image
-#])
-
-#torch_image2 = transform(image2)
-#torch_image1 = transform(image1)
-
-
-
-
-
+    
+    @hydra.main(version_base=None,config_path="config",config_name="config")
+    def start(cfg):
+        world_size = torch.cuda.device_count()
+        mp.spawn(main, args=(world_size,cfg), nprocs=world_size) 
+    
+    start()
 
