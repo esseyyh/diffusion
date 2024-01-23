@@ -91,3 +91,4 @@ class CLIP(nn.Module):
         output = self.layernorm(state)                                                          # final activation 
         
         return output
+    
