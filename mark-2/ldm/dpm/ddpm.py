@@ -7,7 +7,7 @@ class DDPM:
     def __init__(self, generator: torch.Generator,                                                                          #pytorch random number generator
                   num_training_steps=1000,                                                                                  # training steps (noising and denoising steps)
                   beta_start: float = 0.00085,                                                                              # beta start
-                    beta_end: float = 0.0120):                                                                              # beta end schedule
+                  beta_end: float = 0.0120):                                                                              # beta end schedule
         
 
                                                                                                                              # Params "beta_start" and "beta_end" taken from: https://github.com/CompVis/stable-diffusion/blob/21f890f9da3cfbeaba8e2ac3c425ee9e998d5229/configs/stable-diffusion/v1-inference.yaml#L5C8-L5C8
@@ -103,6 +103,8 @@ class DDPM:
         original_samples: torch.FloatTensor,
         timesteps: torch.IntTensor,
     ) -> torch.FloatTensor:
+
+
         alphas_cumprod = self.alphas_cumprod.to(device=original_samples.device, dtype=original_samples.dtype)
         timesteps = timesteps.to(original_samples.device)
 
@@ -122,11 +124,11 @@ class DDPM:
         return noisy_samples
 
         
-    def time_embedding(timestep):
+    def time_embedding(self,timestep):
     
         freqs = torch.pow(10000, -torch.arange(start=0, end=160, dtype=torch.float32) / 160) 
         # Shape: (1, 160)
         x = torch.tensor([timestep], dtype=torch.float32)[:, None] * freqs[None]
-    # Shape: (1, 160 * 2)
+        # Shape: (1, 160 * 2)
         return torch.cat([torch.cos(x), torch.sin(x)], dim=-1)
     

@@ -1,12 +1,10 @@
 import torch
 import os
 import csv
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-import numpy as np
-import PIL
-from PIL import Image
+
 from transformers import CLIPTokenizer
 from scripts.clip_model_loader import load_models_
 from scripts.ae_model_loader import load_decoder
@@ -74,9 +72,10 @@ class ImageDataset(Dataset):
         # image or batch index as input 
         image = self.image_paths[index]
 
+
         # random time step generation 
         t = torch.randint(0, self.time_steps,(1,))
-        t=self.diff.time_embedding(int(t))
+        time_embedding=self.diff.time_embedding(int(t))
         
 
         # turn image to tensor
@@ -98,7 +97,7 @@ class ImageDataset(Dataset):
         
    
 
-        return image,noisy_image,t,text_guiance
+        return image,noisy_image,time_embedding,text_guiance
 
 
 class Sampling():
